@@ -34,28 +34,28 @@ if workspace:FindFirstChild("AbilityThingyk1212") then
 end
 
 local Window = Rayfield:CreateWindow({
-   Name = "Blade Ball",
-   LoadingTitle = "Blade Ball",
-   LoadingSubtitle = "by SadlekAski",
+   Name = "NIYE Hub",
+   LoadingTitle = "L O A D I N G",
+   LoadingSubtitle = "by NIYE Devs",
    ConfigurationSaving = {
       Enabled = true,
-      FolderName = "BladeBallerlol",
+      FolderName = "NIYEHUB",
       FileName = "Configuration"
    },
    Discord = {
       Enabled = true,
-      Invite = "hNX8VxcjMF",
+      Invite = "https://discord.gg/HXYdMjf7Rs",
       RememberJoins = true
    },
-   KeySystem = false,
+   KeySystem = true,
    KeySettings = {
-      Title = "IDK",
+      Title = "NIYE Hub",
       Subtitle = "Key System",
-      Note = "nuh",
+      Note = "Join the discord for the key!",
       FileName = "??",
       SaveKey = true,
       GrabKeyFromSite = false,
-      Key = "Hello"
+      Key = "NIYEBALL"
    }
 })
 
@@ -205,7 +205,7 @@ local Descrip = AutoParry:CreateButton({
    Callback = function()
     Rayfield:Notify({
    Title = "Credits",
-   Content = "Auto Parry By infernokarl (Discord User)",
+   Content = "Auto Parry By NIYE Hub",
    Duration = 60,
    Image = 4483362458,
    Actions = { -- Notification Buttons
@@ -406,11 +406,11 @@ local TpToSpawn = AutoParry:CreateToggle({
 
 local Discord = Main:CreateSection("Discord")
 local Descrip = Main:CreateButton({
-   Name = "Discord invite (IF you wanted to join)",
+   Name = "Discord invite",
    Callback = function()
     Rayfield:Notify({
    Title = "Credits",
-   Content = "Discord invite (If you forgot to join, and wanted to): discord.gg/hNX8VxcjMF",
+   Content = "https://discord.gg/HXYdMjf7Rs",
    Duration = 60,
    Image = 4483362458,
    Actions = { -- Notification Buttons
