@@ -1,0 +1,520 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local Workspace = game:GetService("Workspace")
+
+local plr = Players.LocalPlayer
+local mouse = plr:GetMouse()
+
+local aiming = false
+local locked = false
+local lockedTarget = nil
+local lockedPlayer = nil
+local selectedDevice = nil
+local started = false
+
+local FOV_RADIUS = 120
+local SMOOTHNESS = 0.15
+
+local fovCircle = nil
+local lockCircle = nil
+local targetLine = nil
+
+pcall(function()
+    fovCircle = Drawing.new("Circle")
+    fovCircle.Radius = FOV_RADIUS
+    fovCircle.Color = Color3.fromRGB(255, 255, 0)
+    fovCircle.Thickness = 2
+    fovCircle.Transparency = 0.7
+    fovCircle.Visible = false
+    fovCircle.Filled = false
+    
+    lockCircle = Drawing.new("Circle")
+    lockCircle.Radius = 8
+    lockCircle.Color = Color3.fromRGB(255, 0, 0)
+    lockCircle.Thickness = 2
+    lockCircle.Visible = false
+    lockCircle.Filled = true
+    
+    targetLine = Drawing.new("Line")
+    targetLine.Color = Color3.fromRGB(255, 0, 0)
+    targetLine.Thickness = 1
+    targetLine.Visible = false
+end)
+
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "Aimbot"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = plr:WaitForChild("PlayerGui")
+
+local function tween(obj, props, dur)
+    TweenService:Create(obj, TweenInfo.new(dur or 0.3, Enum.EasingStyle.Quint), props):Play()
+end
+
+local selectionFrame = Instance.new("Frame")
+selectionFrame.Size = UDim2.new(0, 260, 0, 150)
+selectionFrame.Position = UDim2.new(0.5, -130, 0.5, -75)
+selectionFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+selectionFrame.BackgroundTransparency = 1
+selectionFrame.Parent = screenGui
+
+local corner1 = Instance.new("UICorner")
+corner1.CornerRadius = UDim.new(0, 12)
+corner1.Parent = selectionFrame
+
+local stroke1 = Instance.new("UIStroke")
+stroke1.Color = Color3.fromRGB(255, 50, 50)
+stroke1.Thickness = 2
+stroke1.Transparency = 1
+stroke1.Parent = selectionFrame
+
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, 0, 0, 35)
+title.Position = UDim2.new(0, 0, 0, 10)
+title.BackgroundTransparency = 1
+title.Text = "Select Your Device"
+title.TextColor3 = Color3.new(1, 1, 1)
+title.TextTransparency = 1
+title.TextSize = 17
+title.Font = Enum.Font.GothamBold
+title.Parent = selectionFrame
+
+local pcBtn = Instance.new("TextButton")
+pcBtn.Size = UDim2.new(0, 100, 0, 45)
+pcBtn.Position = UDim2.new(0, 20, 0, 55)
+pcBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+pcBtn.BackgroundTransparency = 1
+pcBtn.Text = "PC"
+pcBtn.TextColor3 = Color3.new(1, 1, 1)
+pcBtn.TextTransparency = 1
+pcBtn.TextSize = 15
+pcBtn.Font = Enum.Font.GothamBold
+pcBtn.Parent = selectionFrame
+
+local corner2 = Instance.new("UICorner")
+corner2.CornerRadius = UDim.new(0, 8)
+corner2.Parent = pcBtn
+
+local mobileBtn = Instance.new("TextButton")
+mobileBtn.Size = UDim2.new(0, 100, 0, 45)
+mobileBtn.Position = UDim2.new(0, 140, 0, 55)
+mobileBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+mobileBtn.BackgroundTransparency = 1
+mobileBtn.Text = "Mobile"
+mobileBtn.TextColor3 = Color3.new(1, 1, 1)
+mobileBtn.TextTransparency = 1
+mobileBtn.TextSize = 15
+mobileBtn.Font = Enum.Font.GothamBold
+mobileBtn.Parent = selectionFrame
+
+local corner3 = Instance.new("UICorner")
+corner3.CornerRadius = UDim.new(0, 8)
+corner3.Parent = mobileBtn
+
+local discord = Instance.new("TextLabel")
+discord.Size = UDim2.new(1, 0, 0, 20)
+discord.Position = UDim2.new(0, 0, 1, -25)
+discord.BackgroundTransparency = 1
+discord.Text = "discord.gg/solra"
+discord.TextColor3 = Color3.fromRGB(255, 50, 50)
+discord.TextTransparency = 1
+discord.TextSize = 11
+discord.Font = Enum.Font.GothamBold
+discord.Parent = selectionFrame
+
+local pcInfo = Instance.new("Frame")
+pcInfo.Size = UDim2.new(0, 240, 0, 160)
+pcInfo.Position = UDim2.new(0.5, -120, 0.5, -80)
+pcInfo.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
+pcInfo.BackgroundTransparency = 1
+pcInfo.Visible = false
+pcInfo.Parent = screenGui
+
+local corner4 = Instance.new("UICorner")
+corner4.CornerRadius = UDim.new(0, 12)
+corner4.Parent = pcInfo
+
+local stroke2 = Instance.new("UIStroke")
+stroke2.Color = Color3.fromRGB(255, 50, 50)
+stroke2.Thickness = 2
+stroke2.Transparency = 1
+stroke2.Parent = pcInfo
+
+local pcTitle = Instance.new("TextLabel")
+pcTitle.Size = UDim2.new(1, 0, 0, 30)
+pcTitle.Position = UDim2.new(0, 0, 0, 8)
+pcTitle.BackgroundTransparency = 1
+pcTitle.Text = "Controls"
+pcTitle.TextColor3 = Color3.new(1, 1, 1)
+pcTitle.TextTransparency = 1
+pcTitle.TextSize = 18
+pcTitle.Font = Enum.Font.GothamBold
+pcTitle.Parent = pcInfo
+
+local pcText = Instance.new("TextLabel")
+pcText.Size = UDim2.new(1, -20, 0, 50)
+pcText.Position = UDim2.new(0, 10, 0, 40)
+pcText.BackgroundTransparency = 1
+pcText.Text = "[Q] Toggle Aimbot\n[E] Lock Target"
+pcText.TextColor3 = Color3.fromRGB(180, 180, 180)
+pcText.TextTransparency = 1
+pcText.TextSize = 14
+pcText.Font = Enum.Font.Gotham
+pcText.TextXAlignment = Enum.TextXAlignment.Left
+pcText.Parent = pcInfo
+
+local continueBtn = Instance.new("TextButton")
+continueBtn.Size = UDim2.new(0, 160, 0, 40)
+continueBtn.Position = UDim2.new(0.5, -80, 1, -50)
+continueBtn.BackgroundColor3 = Color3.fromRGB(255, 50, 50)
+continueBtn.BackgroundTransparency = 1
+continueBtn.Text = "Continue"
+continueBtn.TextColor3 = Color3.new(1, 1, 1)
+continueBtn.TextTransparency = 1
+continueBtn.TextSize = 14
+continueBtn.Font = Enum.Font.GothamBold
+continueBtn.Parent = pcInfo
+
+local corner5 = Instance.new("UICorner")
+corner5.CornerRadius = UDim.new(0, 8)
+corner5.Parent = continueBtn
+
+local mobileFrame = Instance.new("Frame")
+mobileFrame.Size = UDim2.new(0, 150, 0, 165)
+mobileFrame.Position = UDim2.new(1, -165, 1, -225)
+mobileFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
+mobileFrame.BackgroundTransparency = 1
+mobileFrame.Visible = false
+mobileFrame.Parent = screenGui
+
+local corner6 = Instance.new("UICorner")
+corner6.CornerRadius = UDim.new(0, 12)
+corner6.Parent = mobileFrame
+
+local stroke3 = Instance.new("UIStroke")
+stroke3.Color = Color3.fromRGB(255, 50, 50)
+stroke3.Thickness = 2
+stroke3.Transparency = 1
+stroke3.Parent = mobileFrame
+
+local aimBtn = Instance.new("TextButton")
+aimBtn.Size = UDim2.new(1, -16, 0, 42)
+aimBtn.Position = UDim2.new(0, 8, 0, 8)
+aimBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
+aimBtn.Text = "AIMBOT: OFF"
+aimBtn.TextColor3 = Color3.new(1, 1, 1)
+aimBtn.TextSize = 13
+aimBtn.Font = Enum.Font.GothamBold
+aimBtn.Parent = mobileFrame
+
+local corner7 = Instance.new("UICorner")
+corner7.CornerRadius = UDim.new(0, 8)
+corner7.Parent = aimBtn
+
+local lockBtn = Instance.new("TextButton")
+lockBtn.Size = UDim2.new(1, -16, 0, 42)
+lockBtn.Position = UDim2.new(0, 8, 0, 55)
+lockBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
+lockBtn.Text = "LOCK: OFF"
+lockBtn.TextColor3 = Color3.new(1, 1, 1)
+lockBtn.TextSize = 13
+lockBtn.Font = Enum.Font.GothamBold
+lockBtn.Parent = mobileFrame
+
+local corner8 = Instance.new("UICorner")
+corner8.CornerRadius = UDim.new(0, 8)
+corner8.Parent = lockBtn
+
+local note = Instance.new("TextLabel")
+note.Size = UDim2.new(1, -10, 0, 28)
+note.Position = UDim2.new(0, 5, 0, 100)
+note.BackgroundTransparency = 1
+note.Text = "Note: Might not work\non mobile"
+note.TextColor3 = Color3.fromRGB(255, 180, 80)
+note.TextSize = 9
+note.Font = Enum.Font.Gotham
+note.TextWrapped = true
+note.Parent = mobileFrame
+
+local mobileDiscord = Instance.new("TextLabel")
+mobileDiscord.Size = UDim2.new(1, 0, 0, 18)
+mobileDiscord.Position = UDim2.new(0, 0, 1, -20)
+mobileDiscord.BackgroundTransparency = 1
+mobileDiscord.Text = "discord.gg/solra"
+mobileDiscord.TextColor3 = Color3.fromRGB(255, 50, 50)
+mobileDiscord.TextSize = 10
+mobileDiscord.Font = Enum.Font.GothamBold
+mobileDiscord.Parent = mobileFrame
+
+local pcDiscord = Instance.new("TextLabel")
+pcDiscord.Size = UDim2.new(0, 130, 0, 18)
+pcDiscord.Position = UDim2.new(0.5, -65, 1, -25)
+pcDiscord.BackgroundTransparency = 1
+pcDiscord.Text = "discord.gg/solra"
+pcDiscord.TextColor3 = Color3.fromRGB(255, 50, 50)
+pcDiscord.TextTransparency = 1
+pcDiscord.TextSize = 11
+pcDiscord.Font = Enum.Font.GothamBold
+pcDiscord.Visible = false
+pcDiscord.Parent = screenGui
+
+local function getClosestPlayer()
+    local cam = Workspace.CurrentCamera
+    if not cam then return nil, nil end
+    
+    local closest = nil
+    local closestPlr = nil
+    local shortestDist = FOV_RADIUS
+    local center = Vector2.new(cam.ViewportSize.X / 2, cam.ViewportSize.Y / 2)
+    
+    for _, p in pairs(Players:GetPlayers()) do
+        if p ~= plr and p.Character then
+            local char = p.Character
+            local hum = char:FindFirstChildOfClass("Humanoid")
+            local head = char:FindFirstChild("Head") or char:FindFirstChild("HumanoidRootPart")
+            
+            if hum and hum.Health > 0 and head then
+                local screenPos, onScreen = cam:WorldToViewportPoint(head.Position)
+                
+                if onScreen then
+                    local dist = (Vector2.new(screenPos.X, screenPos.Y) - center).Magnitude
+                    
+                    if dist < shortestDist then
+                        shortestDist = dist
+                        closest = head
+                        closestPlr = p
+                    end
+                end
+            end
+        end
+    end
+    
+    return closest, closestPlr
+end
+
+local function updateBtns()
+    if selectedDevice ~= "MOBILE" then return end
+    
+    if aiming then
+        aimBtn.BackgroundColor3 = Color3.fromRGB(40, 160, 40)
+        aimBtn.Text = "AIMBOT: ON"
+    else
+        aimBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
+        aimBtn.Text = "AIMBOT: OFF"
+    end
+    
+    if locked then
+        lockBtn.BackgroundColor3 = Color3.fromRGB(180, 40, 40)
+        lockBtn.Text = "LOCK: ON"
+    else
+        lockBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 55)
+        lockBtn.Text = "LOCK: OFF"
+    end
+end
+
+local function toggleAim()
+    aiming = not aiming
+    
+    if fovCircle then
+        if aiming then
+            fovCircle.Color = Color3.fromRGB(0, 255, 0)
+        else
+            fovCircle.Color = Color3.fromRGB(255, 255, 0)
+        end
+    end
+    
+    updateBtns()
+end
+
+local function toggleLock()
+    if locked then
+        locked = false
+        lockedTarget = nil
+        lockedPlayer = nil
+        
+        if fovCircle then
+            fovCircle.Color = aiming and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 255, 0)
+        end
+    else
+        local target, targetPlr = getClosestPlayer()
+        
+        if target then
+            locked = true
+            lockedTarget = target
+            lockedPlayer = targetPlr
+            
+            if fovCircle then
+                fovCircle.Color = Color3.fromRGB(255, 0, 0)
+            end
+        end
+    end
+    
+    updateBtns()
+end
+
+aimBtn.MouseButton1Down:Connect(toggleAim)
+lockBtn.MouseButton1Down:Connect(toggleLock)
+
+local function isTargetValid()
+    if not lockedTarget or not lockedPlayer then return false end
+    if not lockedTarget.Parent then return false end
+    
+    local char = lockedPlayer.Character
+    if not char then return false end
+    
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    if not hum or hum.Health <= 0 then return false end
+    
+    return true
+end
+
+local function start()
+    if started then return end
+    started = true
+    
+    RunService.RenderStepped:Connect(function(dt)
+        local cam = Workspace.CurrentCamera
+        if not cam then return end
+        
+        local center = Vector2.new(cam.ViewportSize.X / 2, cam.ViewportSize.Y / 2)
+        
+        if fovCircle then
+            fovCircle.Position = center
+            fovCircle.Visible = true
+        end
+        
+        if locked then
+            if not isTargetValid() then
+                locked = false
+                lockedTarget = nil
+                lockedPlayer = nil
+                
+                if fovCircle then
+                    fovCircle.Color = aiming and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 255, 0)
+                end
+                
+                if lockCircle then lockCircle.Visible = false end
+                if targetLine then targetLine.Visible = false end
+                
+                updateBtns()
+                return
+            end
+            
+            local screenPos, onScreen = cam:WorldToViewportPoint(lockedTarget.Position)
+            
+            if lockCircle then
+                lockCircle.Position = Vector2.new(screenPos.X, screenPos.Y)
+                lockCircle.Visible = onScreen
+            end
+            
+            if targetLine then
+                targetLine.From = center
+                targetLine.To = Vector2.new(screenPos.X, screenPos.Y)
+                targetLine.Visible = onScreen
+            end
+            
+            local targetCFrame = CFrame.new(cam.CFrame.Position, lockedTarget.Position)
+            cam.CFrame = cam.CFrame:Lerp(targetCFrame, SMOOTHNESS * 1.5)
+            
+        elseif aiming then
+            if lockCircle then lockCircle.Visible = false end
+            if targetLine then targetLine.Visible = false end
+            
+            local target = getClosestPlayer()
+            
+            if target then
+                local targetCFrame = CFrame.new(cam.CFrame.Position, target.Position)
+                cam.CFrame = cam.CFrame:Lerp(targetCFrame, SMOOTHNESS)
+            end
+        else
+            if lockCircle then lockCircle.Visible = false end
+            if targetLine then targetLine.Visible = false end
+        end
+    end)
+    
+    UserInputService.InputBegan:Connect(function(input, gpe)
+        if gpe then return end
+        
+        if input.KeyCode == Enum.KeyCode.Q then
+            toggleAim()
+        end
+        
+        if input.KeyCode == Enum.KeyCode.E then
+            toggleLock()
+        end
+    end)
+end
+
+local function showSelect()
+    tween(selectionFrame, {BackgroundTransparency = 0.1}, 0.4)
+    tween(stroke1, {Transparency = 0}, 0.4)
+    tween(title, {TextTransparency = 0}, 0.4)
+    tween(discord, {TextTransparency = 0}, 0.4)
+    task.wait(0.1)
+    tween(pcBtn, {BackgroundTransparency = 0, TextTransparency = 0}, 0.3)
+    tween(mobileBtn, {BackgroundTransparency = 0, TextTransparency = 0}, 0.3)
+end
+
+local function hideSelect()
+    tween(selectionFrame, {BackgroundTransparency = 1}, 0.2)
+    tween(stroke1, {Transparency = 1}, 0.2)
+    tween(title, {TextTransparency = 1}, 0.2)
+    tween(discord, {TextTransparency = 1}, 0.2)
+    tween(pcBtn, {BackgroundTransparency = 1, TextTransparency = 1}, 0.2)
+    tween(mobileBtn, {BackgroundTransparency = 1, TextTransparency = 1}, 0.2)
+    task.wait(0.2)
+    selectionFrame.Visible = false
+end
+
+local function showPC()
+    pcInfo.Visible = true
+    tween(pcInfo, {BackgroundTransparency = 0.1}, 0.3)
+    tween(stroke2, {Transparency = 0}, 0.3)
+    tween(pcTitle, {TextTransparency = 0}, 0.3)
+    tween(pcText, {TextTransparency = 0}, 0.3)
+    tween(continueBtn, {BackgroundTransparency = 0, TextTransparency = 0}, 0.3)
+end
+
+local function hidePC()
+    tween(pcInfo, {BackgroundTransparency = 1}, 0.2)
+    tween(stroke2, {Transparency = 1}, 0.2)
+    tween(pcTitle, {TextTransparency = 1}, 0.2)
+    tween(pcText, {TextTransparency = 1}, 0.2)
+    tween(continueBtn, {BackgroundTransparency = 1, TextTransparency = 1}, 0.2)
+    task.wait(0.2)
+    pcInfo.Visible = false
+end
+
+local function showMobile()
+    mobileFrame.Visible = true
+    tween(mobileFrame, {BackgroundTransparency = 0.15}, 0.3)
+    tween(stroke3, {Transparency = 0}, 0.3)
+    tween(aimBtn, {BackgroundTransparency = 0}, 0.3)
+    tween(lockBtn, {BackgroundTransparency = 0}, 0.3)
+end
+
+pcBtn.MouseButton1Down:Connect(function()
+    selectedDevice = "PC"
+    hideSelect()
+    task.wait(0.1)
+    showPC()
+end)
+
+mobileBtn.MouseButton1Down:Connect(function()
+    selectedDevice = "MOBILE"
+    hideSelect()
+    task.wait(0.1)
+    showMobile()
+    start()
+end)
+
+continueBtn.MouseButton1Down:Connect(function()
+    hidePC()
+    task.wait(0.1)
+    pcDiscord.Visible = true
+    tween(pcDiscord, {TextTransparency = 0}, 0.3)
+    start()
+end)
+
+showSelect()
